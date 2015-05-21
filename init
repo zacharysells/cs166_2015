@@ -1,0 +1,8 @@
+# Setup environment variables
+# export PGDATA=/usr/local/var/postgres
+# export PGPORT=3217
+# export DB_NAME=cs166
+
+# Start postgres server
+mkdir $PGDATA/logs
+pg_ctl start -l $PGDATA/logs/logfile
