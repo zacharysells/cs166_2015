@@ -394,6 +394,22 @@ public class ProfNetwork {
      }
    }//end
 
+   public static Boolean RequestExists(ProfNetwork esql, String authorisedUser, String uname){
+     try{
+       String query = String.format("SELECT * FROM CONNECTION_USR WHERE userid = '%s' AND connectionid = '%s'", uname, authorisedUser);
+       int num = esql.executeQuery(query);
+       if (num > 0){
+         return true;
+       }
+       else{
+         return false;
+       }
+     }catch(Exception e){
+       System.err.println (e.getMessage ());
+       return null;
+     }
+   }//end
+
    public static Integer NumConnections(ProfNetwork esql, String uname){
      try{
        String query = String.format("SELECT * FROM CONNECTION_USR WHERE userId = '%s' AND status = 1", uname);
@@ -474,7 +490,9 @@ public class ProfNetwork {
        if(uname.equals(authorisedUser)){
          System.out.println("\tYou cannot friend yourself");
        }
-       //else if (Request already exists from one user to another or already connected)
+       else if (RequestExists(esql, authorisedUser, uname)){
+         System.out.printf("\tRequest already exists between you and %s\n", uname);
+       }
        //TODO see if user is within 3 connection limit or logged in user has less than 5 connections
        else if (UserExists(esql, uname)) {
         String query = String.format("INSERT INTO CONNECTION_USR(userid, connectionid, status) VALUES ('%s', '%s', 0)", authorisedUser, uname);
