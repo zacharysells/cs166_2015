@@ -220,28 +220,6 @@ public class ProfNetwork {
       }//end try
    }//end cleanup
 
-
-   public static void FriendList(ProfNetwork esql){
-     //TODO
-     System.out.println("Calling FriendList() function");
-   }
-
-   public static void UpdateProfile(ProfNetwork esql){
-     //TODO
-     System.out.println("Calling UpdateProfile() function");
-   }
-
-   public static void NewMessage(ProfNetwork esql){
-     //TODO
-     System.out.println("Calling NewMessage() function");
-   }
-
-   public static void SendRequest(ProfNetwork esql){
-     //TODO
-     System.out.println("Calling SendRequest() function");
-   }
-
-
    /**
     * The main execution method
     *
@@ -296,10 +274,10 @@ public class ProfNetwork {
                 System.out.println(".........................");
                 System.out.println("9. Log out");
                 switch (readChoice()){
-                   case 1: FriendList(esql); break;
-                   case 2: UpdateProfile(esql); break;
-                   case 3: NewMessage(esql); break;
-                   case 4: SendRequest(esql); break;
+                   case 1: FriendList(esql, authorisedUser); break;
+                   case 2: UpdateProfile(esql, authorisedUser); break;
+                   case 3: NewMessage(esql, authorisedUser); break;
+                   case 4: SendRequest(esql, authorisedUser); break;
                    case 9: usermenu = false; break;
                    default : System.out.println("Unrecognized choice!"); break;
                 }
@@ -376,6 +354,23 @@ public class ProfNetwork {
     * Check log in credentials for an existing user
     * @return User login or null is the user does not exist
     **/
+
+   public static Boolean UserExists(ProfNetwork esql, String uname){
+     try{
+       String query = String.format("SELECT * FROM USR WHERE userId = '%s'", uname);
+       int userNum = esql.executeQuery(query);
+       if (userNum > 0){
+        return true;
+       }
+       else{
+         return false;
+       }
+     }catch(Exception e){
+       System.err.println (e.getMessage ());
+       return null;
+     }
+   }//end
+
    public static String LogIn(ProfNetwork esql){
       try{
          System.out.print("\tEnter user login: ");
@@ -385,14 +380,60 @@ public class ProfNetwork {
 
          String query = String.format("SELECT * FROM USR WHERE userId = '%s' AND password = '%s'", login, password);
          int userNum = esql.executeQuery(query);
-	 if (userNum > 0)
-		return login;
-         return null;
+
+         if (UserExists(esql, login)){
+           return login;
+         }
+         else{
+           return null;
+         }
       }catch(Exception e){
          System.err.println (e.getMessage ());
          return null;
       }
    }//end
+
+   public static void FriendList(ProfNetwork esql, String authorisedUser){
+     //TODO
+     System.out.println("Calling FriendList() function");
+   }
+
+   public static void UpdateProfile(ProfNetwork esql, String authorisedUser){
+     //TODO
+     System.out.println("Calling UpdateProfile() function");
+   }
+
+   public static void NewMessage(ProfNetwork esql, String authorisedUser){
+     //TODO
+     System.out.println("Calling NewMessage() function");
+   }
+
+   // Connection status:
+   // 0 : Unaccepted
+   // 1 : Accepted
+   // 2 : idk
+   public static void SendRequest(ProfNetwork esql, String authorisedUser){
+     //TODO
+     try{
+       System.out.print("\tWhat user do you want to friend? ");
+       String uname = in.readLine();
+
+       if (UserExists(esql, uname)) {
+        System.out.println("\tUser exists");
+        String query = String.format("INSERT INTO CONNECTION_USR(userid, connectionid, status) VALUES ('%s', '%s', 0)", authorisedUser, uname);
+        System.out.println(query);
+        esql.executeUpdate(query);
+       }
+       else {
+        System.out.println("\tUser does not exist");
+       }
+
+     }catch(Exception e){
+       System.err.println (e.getMessage ());
+       return;
+     }
+   }
+
 
 // Rest of the functions definition go in here
 
