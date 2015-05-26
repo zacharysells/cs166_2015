@@ -250,6 +250,7 @@ public class ProfNetwork {
          boolean keepon = true;
          while(keepon) {
             // These are sample SQL statements
+            //ClearScreen();
             System.out.println("MAIN MENU");
             System.out.println("---------");
             System.out.println("1. Create user");
@@ -265,12 +266,14 @@ public class ProfNetwork {
             if (authorisedUser != null) {
               boolean usermenu = true;
               while(usermenu) {
+                ClearScreen();
                 System.out.println("MAIN MENU");
                 System.out.println("---------");
                 System.out.println("1. Goto Friend List");
                 System.out.println("2. Update Profile");
                 System.out.println("3. Write a new message");
                 System.out.println("4. Send Friend Request");
+                System.out.println("5. Accept/Deny Friend Request");
                 System.out.println(".........................");
                 System.out.println("9. Log out");
                 switch (readChoice()){
@@ -278,6 +281,7 @@ public class ProfNetwork {
                    case 2: UpdateProfile(esql, authorisedUser); break;
                    case 3: NewMessage(esql, authorisedUser); break;
                    case 4: SendRequest(esql, authorisedUser); break;
+                   case 5: AcceptDenyRequests(esql, authorisedUser); break;
                    case 9: usermenu = false; break;
                    default : System.out.println("Unrecognized choice!"); break;
                 }
@@ -340,8 +344,8 @@ public class ProfNetwork {
          System.out.print("\tEnter user email: ");
          String email = in.readLine();
 
-	 //Creating empty contact\block lists for a user
-	 String query = String.format("INSERT INTO USR (userId, password, email) VALUES ('%s','%s','%s')", login, password, email);
+      	 //Creating empty contact\block lists for a user
+      	 String query = String.format("INSERT INTO USR (userId, password, email) VALUES ('%s','%s','%s')", login, password, email);
 
          esql.executeUpdate(query);
          System.out.println ("User successfully created!");
@@ -349,6 +353,25 @@ public class ProfNetwork {
          System.err.println (e.getMessage ());
       }
    }//end
+
+   public static void ClearScreen(){
+     try{
+       final String ANSI_CLS = "\u001b[2J";
+       final String ANSI_HOME = "\u001b[H";
+       System.out.print(ANSI_CLS + ANSI_HOME);
+       System.out.flush();
+     }catch(Exception e){
+       System.err.println (e.getMessage ());
+     }
+   }
+
+   public static void Sleep(Integer time){
+     try {
+       Thread.sleep(time);                 //1000 milliseconds is one second.
+     } catch(InterruptedException ex) {
+       Thread.currentThread().interrupt();
+     }
+   }
 
    /*
     * Check log in credentials for an existing user
@@ -370,6 +393,17 @@ public class ProfNetwork {
        return null;
      }
    }//end
+
+   public static Integer NumConnections(ProfNetwork esql, String uname){
+     try{
+       String query = String.format("SELECT * FROM CONNECTION_USR WHERE userId = '%s' AND status = 1", uname);
+       int userNum = esql.executeQuery(query);
+       return userNum;
+     }catch(Exception e){
+       System.err.println(e.getMessage());
+       return null;
+     }
+   }
 
    public static String LogIn(ProfNetwork esql){
       try{
@@ -393,6 +427,26 @@ public class ProfNetwork {
       }
    }//end
 
+   public static void AcceptRequest(ProfNetwork esql, String authorisedUser, String friend){
+     try{
+       String query = String.format("UPDATE CONNECTION_USR SET status = '1' WHERE userid = '%s' AND connectionid = '%s' AND status = '0'", friend, authorisedUser);
+       esql.executeUpdate(query);
+     }catch(Exception e){
+       System.err.println (e.getMessage ());
+       return;
+     }
+   }
+
+   public static void DenyRequest(ProfNetwork esql, String authorisedUser, String friend){
+     try{
+       String query = String.format("UPDATE CONNECTION_USR SET status = '2' WHERE userid = '%s' AND connectionid = '%s' AND status = '0'", friend, authorisedUser);
+       esql.executeUpdate(query);
+     }catch(Exception e){
+       System.err.println (e.getMessage ());
+       return;
+     }
+   }
+
    public static void FriendList(ProfNetwork esql, String authorisedUser){
      //TODO
      System.out.println("Calling FriendList() function");
@@ -411,22 +465,101 @@ public class ProfNetwork {
    // Connection status:
    // 0 : Unaccepted
    // 1 : Accepted
-   // 2 : idk
+   // 2 : Denied
    public static void SendRequest(ProfNetwork esql, String authorisedUser){
-     //TODO
      try{
        System.out.print("\tWhat user do you want to friend? ");
        String uname = in.readLine();
 
-       if (UserExists(esql, uname)) {
-        System.out.println("\tUser exists");
+       if(uname.equals(authorisedUser)){
+         System.out.println("\tYou cannot friend yourself");
+       }
+       //else if (Request already exists from one user to another or already connected)
+       //TODO see if user is within 3 connection limit or logged in user has less than 5 connections
+       else if (UserExists(esql, uname)) {
         String query = String.format("INSERT INTO CONNECTION_USR(userid, connectionid, status) VALUES ('%s', '%s', 0)", authorisedUser, uname);
-        System.out.println(query);
+        System.out.printf("\tSending friend request to %s..\n", uname);
         esql.executeUpdate(query);
        }
        else {
         System.out.println("\tUser does not exist");
        }
+     }catch(Exception e){
+       System.err.printf ("\t%s\n",e.getMessage ());
+       return;
+     }
+     finally{
+       Sleep(2000);
+     }
+   }
+
+   public static void AcceptDenyRequests(ProfNetwork esql, String authorisedUser){
+     try{
+       Boolean acceptRequests = true;
+       Boolean redoQuery = true;
+       List<List <String> > unnaccpetedRequests = null;
+        while(acceptRequests){
+          if(redoQuery){
+            String query = String.format("SELECT * FROM CONNECTION_USR WHERE connectionid = '%s' AND status = '0'", authorisedUser);
+            unnaccpetedRequests = esql.executeQueryAndReturnResult(query);
+          }
+          String connectionid = null;
+          Integer i = 0;
+          ClearScreen();
+          System.out.println("FRIEND REQUESTS");
+          System.out.println("---------------");
+          System.out.println("Requests From: ");
+          for (List<String> result : unnaccpetedRequests) {
+            ++i;
+            connectionid = result.get(0);
+            System.out.printf("%d. %s\n", i, connectionid);
+          }
+          System.out.println("...................");
+          System.out.printf("%d. Go back\n", i + 1);
+          Integer choice = readChoice();
+          if(choice == i + 1){
+            // User is choosing to go back.
+            acceptRequests = false;
+            break;
+          }
+          else if (choice <= i){
+            // Valid selection.
+            ClearScreen();
+            System.out.println("ACCEPT OR DENY");
+            System.out.println("---------------");
+            System.out.println("1. Accept Friend Request");
+            System.out.println("2. Deny Friend Request");
+            System.out.println(".........................");
+            System.out.println("3. Go back");
+            switch (readChoice()){
+              case 1:
+                connectionid = unnaccpetedRequests.get(choice-1).get(0);
+                System.out.printf("Accepting friend request", connectionid);
+                esql.AcceptRequest(esql, authorisedUser, connectionid);
+                redoQuery = true;
+                Sleep(2000);
+                break;
+              case 2:
+                connectionid = unnaccpetedRequests.get(choice-1).get(0);
+                System.out.printf("Denying friend request", connectionid);
+                esql.DenyRequest(esql, authorisedUser, connectionid);
+                redoQuery = true;
+                Sleep(2000);
+                break;
+              case 3:
+                break;
+              default :
+                System.out.println("Unrecognized choice!"); break;
+            }
+          }
+          else{
+            // Invalid selection.
+            System.out.println("\tInvalid Selection");
+            redoQuery = false;
+            continue;
+          }
+        }
+
 
      }catch(Exception e){
        System.err.println (e.getMessage ());
